@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { registerUser } from '../../src/services/auth.service';
 
+
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -58,8 +59,8 @@ export default function RegisterScreen() {
       await registerUser({ name, email, password });
       
       Alert.alert('Success', 'Account created successfully');
-      router.replace('/auth/login');
-
+      // YOUR PATH: Redirect to login after successful registration
+      router.push('/auth/interests');
     } catch (err: any) {
       // --- NEW: Handle Duplicate Email Logic ---
       const status = err?.response?.status;
