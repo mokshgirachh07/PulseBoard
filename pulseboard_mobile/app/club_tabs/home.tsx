@@ -15,6 +15,7 @@ import { getAllClubs } from '../../src/api/club.api';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { MotiView, AnimatePresence } from 'moti';
 import { Easing } from 'react-native-reanimated';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const THEME_ACCENT = '#CCF900';
 
@@ -78,8 +79,10 @@ export default function ClubHomeScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [eventForm, setEventForm] = useState({
         title: '', location: '', timeDisplay: '', description: '',
-        dateInput: '', badge: 'UPCOMING', color: '#EAB308'
+        badge: 'UPCOMING', color: '#EAB308'
     });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [eventDate, setEventDate] = useState(new Date());
 
     useFocusEffect(useCallback(() => { loadData(); }, []));
 
@@ -106,8 +109,8 @@ export default function ClubHomeScreen() {
     };
 
     const handlePublishEvent = async () => {
-        const { title, location, description, timeDisplay, dateInput } = eventForm;
-        if (!title || !location || !description || !timeDisplay || !dateInput) {
+        const { title, location, description, timeDisplay } = eventForm;
+        if (!title || !location || !description || !timeDisplay) {
             Alert.alert("Error", "All fields are required.");
             return;
         }
@@ -117,12 +120,12 @@ export default function ClubHomeScreen() {
                 ...eventForm,
                 clubId: adminClub?.clubId || 1, // Fallback if no club is fully linked yet
                 icon: adminClub?.icon || '📅',
-                date: new Date(dateInput).toISOString(),
+                date: eventDate.toISOString(),
             });
             Alert.alert("Success", "Event published!");
             setModalVisible(false);
             loadData();
-        } catch (err) { Alert.alert("Error", "Check date format (YYYY-MM-DD)"); }
+        } catch (err) { Alert.alert("Error", "Failed to publish event"); }
         finally { setIsSubmitting(false); }
     };
 
@@ -237,9 +240,32 @@ export default function ClubHomeScreen() {
                         <Label text="Description" /><CustomInput placeholder="Details..." multiline style={{ height: hp('8%') }} onChangeText={(t) => setEventForm({ ...eventForm, description: t })} />
 
                         <View style={{ flexDirection: 'row', gap: wp('2.5%') }}>
-                            <View style={{ flex: 1 }}><Label text="Date (YYYY-MM-DD)" /><CustomInput placeholder="2026-03-01" onChangeText={(t) => setEventForm({ ...eventForm, dateInput: t })} /></View>
+                            <View style={{ flex: 1 }}>
+                                <Label text="Date (DD-MM-YYYY)" />
+                                <TouchableOpacity
+                                    activeOpacity={0.7}
+                                    onPress={() => setShowDatePicker(true)}
+                                    style={{ backgroundColor: '#161618', padding: hp('1.5%'), borderRadius: 10, marginTop: hp('0.5%'), borderWidth: 1, borderColor: '#222', justifyContent: 'center' }}
+                                >
+                                    <Text style={{ color: 'white' }}>
+                                        {eventDate.getDate().toString().padStart(2, '0')}-{(eventDate.getMonth() + 1).toString().padStart(2, '0')}-{eventDate.getFullYear()}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                             <View style={{ flex: 1 }}><Label text="Time" /><CustomInput placeholder="6:00 PM" onChangeText={(t) => setEventForm({ ...eventForm, timeDisplay: t })} /></View>
                         </View>
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={eventDate}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={(event, selectedDate) => {
+                                    setShowDatePicker(false);
+                                    if (selectedDate) setEventDate(selectedDate);
+                                }}
+                            />
+                        )}
 
                         <Label text="Location" /><CustomInput placeholder="Room/Venue" onChangeText={(t) => setEventForm({ ...eventForm, location: t })} />
 
