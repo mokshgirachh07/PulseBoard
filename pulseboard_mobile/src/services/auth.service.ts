@@ -44,49 +44,53 @@ export const loginUser = async (
   const res = await api.post<LoginResponse>("/auth/login", data);
 
   if (res.data.token) {
-    // 1. Save auth token
+    // 1. Save auth token immediately
     await AsyncStorage.setItem("token", res.data.token);
 
-    // 2. Get Expo push token
-    const expoPushToken = await registerForPushNotifications();
-
-    // 3. Save token to backend
-    if (expoPushToken) {
-      await api.post(
-        "/users/save-push-token",
-        { expoPushToken },
-        {
-          headers: {
-            Authorization: `Bearer ${res.data.token}`,
-          },
+    // 2. Fetch and register push token safely AFTER navigation resolves
+    setTimeout(() => {
+      registerForPushNotifications().then((expoPushToken) => {
+        if (expoPushToken) {
+          api.post(
+            "/users/save-push-token",
+            { expoPushToken },
+            {
+              headers: {
+                Authorization: `Bearer ${res.data.token}`,
+              },
+            }
+          ).catch((err) => console.log("Background push token error", err));
         }
-      );
-    }
+      });
+    }, 2000); // Defer to ensure buttery-smooth navigation transition First
   }
 
   return res.data;
 };
 
 // --- Google Auth Function ---
-export const googleLoginUser = async (code: string) => {
-  const res = await api.post("/auth/google/callback", { code });
+// Pass the idToken received from native Google Sign-In to the backend.
+export const googleLoginUser = async (idToken: string) => {
+  const res = await api.post("/auth/google/callback", { id_token: idToken });
 
   if (res.data.token) {
     await AsyncStorage.setItem("token", res.data.token);
 
-    const expoPushToken = await registerForPushNotifications();
-
-    if (expoPushToken) {
-      await api.post(
-        "/users/save-push-token",
-        { expoPushToken },
-        {
-          headers: {
-            Authorization: `Bearer ${res.data.token}`,
-          },
+    setTimeout(() => {
+      registerForPushNotifications().then((expoPushToken) => {
+        if (expoPushToken) {
+          api.post(
+            "/users/save-push-token",
+            { expoPushToken },
+            {
+              headers: {
+                Authorization: `Bearer ${res.data.token}`,
+              },
+            }
+          ).catch((err) => console.log("Background Google push token error", err));
         }
-      );
-    }
+      });
+    }, 2000); // Prevent Bridge UI locking
   }
 
   return res.data;
