@@ -11,7 +11,7 @@ export async function sendPushNotification(
     if (!expoPushToken?.startsWith('ExponentPushToken')) return;
 
     try {
-        await fetch('https://exp.host/push/send', {
+        const res = await fetch('https://exp.host/--/api/v2/push/send', {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
@@ -25,6 +25,8 @@ export async function sendPushNotification(
                 data,
             }),
         });
+        const json = await res.json();
+        console.log(`[Notifications] Sent "${title}" → status: ${json?.data?.status} ticket: ${json?.data?.id}`);
     } catch (err) {
         console.error('[Notifications] Failed to send push:', (err as Error).message);
     }
